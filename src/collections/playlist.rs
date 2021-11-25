@@ -4,7 +4,7 @@ use serde_json;
 use std::result;
 
 use crate::query::Query;
-use crate::{Client, Error, Media, Result, Song};
+use crate::{Client, Error, ApiError, Media, Result, Song};
 
 #[derive(Debug)]
 pub struct Playlist {
@@ -165,7 +165,7 @@ mod tests {
         let songs = parsed.songs(&mut srv);
 
         match songs {
-            Err(::error::Error::Api(::error::ApiError::NotAuthorized(_))) => assert!(true),
+            Err(Error::Api(ApiError::NotAuthorized(_))) => assert!(true),
             Err(e) => panic!("unexpected error: {}", e),
             Ok(_) => panic!("test should have failed; insufficient privilege"),
         }

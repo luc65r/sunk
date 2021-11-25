@@ -275,7 +275,7 @@ mod tests {
     fn parse_album_deep() {
         let parsed = serde_json::from_value::<Album>(raw()).unwrap();
 
-        assert_eq!(parsed.songs[0].id, 27);
+        assert_eq!(parsed.songs[0].id, "27");
         assert_eq!(parsed.songs[0].title, String::from("Bellevue Avenue"));
         assert_eq!(parsed.songs[0].duration, Some(198));
     }

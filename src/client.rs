@@ -450,7 +450,7 @@ mod tests {
         assert_eq!(r.albums[0].id, 23);
         assert_eq!(r.albums[0].name, String::from("The Green Waltz"));
 
-        assert_eq!(r.songs[0].id, 222);
+        assert_eq!(r.songs[0].id, "222");
 
         // etc.
     }
