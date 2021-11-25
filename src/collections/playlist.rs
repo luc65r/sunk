@@ -1,9 +1,10 @@
-use serde::de::{Deserialize, Deserializer};
+use serde::de::Deserializer;
+use serde::Deserialize;
 use serde_json;
 use std::result;
 
-use query::Query;
-use {Client, Error, Media, Result, Song};
+use crate::query::Query;
+use crate::{Client, Error, Media, Result, Song};
 
 #[derive(Debug)]
 pub struct Playlist {
@@ -154,7 +155,7 @@ fn delete_playlist(client: &Client, id: u64) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_util;
+    use crate::test_util;
 
     // The demo playlist exists, but can't be accessed
     #[test]

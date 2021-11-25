@@ -1,5 +1,6 @@
 macro_rules! get_list_as {
     ($f:ident, $t:ident) => {{
+        use serde::Deserialize;
         #[derive(Deserialize)]
         #[allow(non_snake_case)]
         struct List {

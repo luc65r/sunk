@@ -170,9 +170,10 @@
 //! # fn main() { }
 //! ```
 
-use song::Song;
+use serde::Deserialize;
+use crate::song::Song;
 use std::fmt;
-use {Album, Artist};
+use crate::{Album, Artist};
 
 /// The maximum number of results most searches will accept.
 pub const ALL: SearchPage = SearchPage {

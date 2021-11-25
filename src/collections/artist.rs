@@ -1,10 +1,11 @@
 use std::{fmt, result};
 
-use serde::de::{Deserialize, Deserializer};
+use serde::de::Deserializer;
+use serde::Deserialize;
 use serde_json;
 
-use query::Query;
-use {Album, Client, Error, Media, Result, Song};
+use crate::query::Query;
+use crate::{Album, Client, Error, Media, Result, Song};
 
 /// Basic information about an artist.
 #[derive(Debug, Clone)]
@@ -193,7 +194,7 @@ fn get_artist(client: &Client, id: usize) -> Result<Artist> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_util;
+    use crate::test_util;
 
     #[test]
     fn parse_artist() {
@@ -258,5 +259,4 @@ mod tests {
         )
         .unwrap()
     }
-
 }

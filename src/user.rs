@@ -1,7 +1,6 @@
-use serde_json;
-
-use query::Query;
-use {Client, Result};
+use serde::Deserialize;
+use crate::query::Query;
+use crate::{Client, Result};
 
 /// A struct representing a Subsonic user.
 #[derive(Debug, Deserialize)]
@@ -285,7 +284,7 @@ impl UserBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_util;
+    use crate::test_util;
 
     #[test]
     fn remote_parse_user() {

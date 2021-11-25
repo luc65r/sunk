@@ -1,4 +1,5 @@
-#![warn(missing_docs)]
+// #![warn(missing_docs)]
+#![allow(warnings)]
 #![doc(html_root_url = "https://docs.rs/sunk/0.1.2")]
 
 //! # sunk
@@ -100,18 +101,6 @@
 //!
 //! Bug reports and broken features are encouraged to be reported! **If
 //! something does not work as reported, it's probably broken.**
-
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate log;
-extern crate md5;
-extern crate rand;
-extern crate reqwest;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
 
 #[macro_use]
 mod macros;
