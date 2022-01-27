@@ -1,4 +1,4 @@
-use reqwest::blocking::Client as ReqwestClient;
+use reqwest::Client as ReqwestClient;
 use reqwest::Url;
 use serde::Deserialize;
 use serde_json;
@@ -26,13 +26,13 @@ const SALT_SIZE: usize = 36; // Minimum 6 characters.
 ///
 /// ```no_run
 /// use sunk::Client;
-/// # fn run() -> sunk::Result<()> {
+/// # async fn run() -> sunk::Result<()> {
 /// # let site = "http://demo.subsonic.org";
 /// # let user = "guest3";
 /// # let password = "guest";
 ///
 /// let client = Client::new(site, user, password)?;
-/// client.ping()?;
+/// client.ping().await?;
 /// # Ok(())
 /// # }
 /// ```
@@ -179,14 +179,14 @@ impl Client {
     /// - server is built with an incomplete URL
     /// - connecting to the server fails
     /// - the server returns an API error
-    pub(crate) fn get(&self, query: &str, args: Query) -> Result<serde_json::Value> {
+    pub(crate) async fn get(&self, query: &str, args: Query) -> Result<serde_json::Value> {
         let uri: Url = self.build_url(query, args)?.parse().unwrap();
 
         info!("Connecting to {}", uri);
-        let mut res = self.reqclient.get(uri).send()?;
+        let mut res = self.reqclient.get(uri).send().await?;
 
         if res.status().is_success() {
-            let response = res.json::<Response>()?;
+            let response = res.json::<Response>().await?;
             if response.is_ok() {
                 Ok(match response.into_value() {
                     Some(v) => v,
@@ -205,33 +205,33 @@ impl Client {
 
     /// Fetches an unprocessed response from the server rather than a JSON- or
     /// XML-parsed one.
-    pub(crate) fn get_raw(&self, query: &str, args: Query) -> Result<String> {
+    pub(crate) async fn get_raw(&self, query: &str, args: Query) -> Result<String> {
         let uri: Url = self.build_url(query, args)?.parse().unwrap();
-        let mut res = self.reqclient.get(uri).send()?;
-        Ok(res.text()?)
+        let mut res = self.reqclient.get(uri).send().await?;
+        Ok(res.text().await?)
     }
 
     /// Returns a response as a vector of bytes rather than serialising it.
-    pub(crate) fn get_bytes(&self, query: &str, args: Query) -> Result<Vec<u8>> {
+    pub(crate) async fn get_bytes(&self, query: &str, args: Query) -> Result<Vec<u8>> {
         use std::io::Read;
         let uri: Url = self.build_url(query, args)?.parse().unwrap();
-        let res = self.reqclient.get(uri).send()?;
-        Ok(res.bytes().unwrap().to_vec())
+        let res = self.reqclient.get(uri).send().await?;
+        Ok(res.bytes().await.unwrap().to_vec())
         // Ok(res.bytes().map(|b| b.unwrap()).collect())
     }
 
     /// Returns the raw bytes of a HLS slice.
-    pub fn hls_bytes(&self, hls: &Hls) -> Result<Vec<u8>> {
+    pub async fn hls_bytes(&self, hls: &Hls) -> Result<Vec<u8>> {
         use std::io::Read;
         let url: Url = self.url.join(&hls.url)?;
-        let res = self.reqclient.get(url).send()?;
-        Ok(res.bytes().unwrap().to_vec())
+        let res = self.reqclient.get(url).send().await?;
+        Ok(res.bytes().await.unwrap().to_vec())
         // Ok(res.bytes().map(|b| b.unwrap()).collect())
     }
 
     /// Tests a connection with the server.
-    pub fn ping(&self) -> Result<()> {
-        self.get("ping", Query::none())?;
+    pub async fn ping(&self) -> Result<()> {
+        self.get("ping", Query::none()).await?;
         Ok(())
     }
 
@@ -242,8 +242,8 @@ impl Client {
     /// Forks of Subsonic (Libresonic, Airsonic, etc.) do not require licenses;
     /// this method will always return a valid license and trial when attempting
     /// to connect to these services.
-    pub fn check_license(&self) -> Result<License> {
-        let res = self.get("getLicense", Query::none())?;
+    pub async fn check_license(&self) -> Result<License> {
+        let res = self.get("getLicense", Query::none()).await?;
         Ok(serde_json::from_value::<License>(res)?)
     }
 
@@ -253,8 +253,8 @@ impl Client {
     ///
     /// This method was introduced in version 1.15.0. It will not be supported
     /// on servers with earlier versions of the Subsonic API.
-    pub fn scan_library(&self) -> Result<()> {
-        self.get("startScan", Query::none())?;
+    pub async fn scan_library(&self) -> Result<()> {
+        self.get("startScan", Query::none()).await?;
         Ok(())
     }
 
@@ -265,8 +265,8 @@ impl Client {
     ///
     /// This method was introduced in version 1.15.0. It will not be supported
     /// on servers with earlier versions of the Subsonic API.
-    pub fn scan_status(&self) -> Result<(bool, u64)> {
-        let res = self.get("getScanStatus", Query::none())?;
+    pub async fn scan_status(&self) -> Result<(bool, u64)> {
+        let res = self.get("getScanStatus", Query::none()).await?;
 
         #[derive(Deserialize)]
         struct ScanStatus {
@@ -279,36 +279,36 @@ impl Client {
     }
 
     /// Returns all configured top-level music folders.
-    pub fn music_folders(&self) -> Result<Vec<MusicFolder>> {
+    pub async fn music_folders(&self) -> Result<Vec<MusicFolder>> {
         #[allow(non_snake_case)]
-        let musicFolder = self.get("getMusicFolders", Query::none())?;
+        let musicFolder = self.get("getMusicFolders", Query::none()).await?;
 
         Ok(get_list_as!(musicFolder, MusicFolder))
     }
 
     /// Returns all genres.
-    pub fn genres(&self) -> Result<Vec<Genre>> {
-        let genre = self.get("getGenres", Query::none())?;
+    pub async fn genres(&self) -> Result<Vec<Genre>> {
+        let genre = self.get("getGenres", Query::none()).await?;
 
         Ok(get_list_as!(genre, Genre))
     }
 
     /// Returns all currently playing media on the server.
-    pub fn now_playing(&self) -> Result<Vec<NowPlaying>> {
-        let entry = self.get("getNowPlaying", Query::none())?;
+    pub async fn now_playing(&self) -> Result<Vec<NowPlaying>> {
+        let entry = self.get("getNowPlaying", Query::none()).await?;
         Ok(get_list_as!(entry, NowPlaying))
     }
 
     /// Searches for lyrics matching the artist and title. Returns `None` if no
     /// lyrics are found.
-    pub fn lyrics<'a, S>(&self, artist: S, title: S) -> Result<Option<Lyrics>>
+    pub async fn lyrics<'a, S>(&self, artist: S, title: S) -> Result<Option<Lyrics>>
     where
         S: Into<Option<&'a str>>,
     {
         let args = Query::with("artist", artist.into())
             .arg("title", title.into())
             .build();
-        let res = self.get("getLyrics", args)?;
+        let res = self.get("getLyrics", args).await?;
 
         if res.get("value").is_some() {
             Ok(Some(serde_json::from_value(res)?))
@@ -331,7 +331,7 @@ impl Client {
     /// use sunk::search::{self, SearchPage};
     /// use sunk::Client;
     ///
-    /// # fn run() -> sunk::Result<()> {
+    /// # async fn run() -> sunk::Result<()> {
     /// # let site = "http://demo.subsonic.org";
     /// # let user = "guest3";
     /// # let password = "guest";
@@ -340,7 +340,7 @@ impl Client {
     /// let search_size = SearchPage::new();
     /// let ignore = search::NONE;
     ///
-    /// let result = client.search("smile", ignore, ignore, search_size)?;
+    /// let result = client.search("smile", ignore, ignore, search_size).await?;
     ///
     /// assert!(result.artists.is_empty());
     /// assert!(result.albums.is_empty());
@@ -349,7 +349,7 @@ impl Client {
     /// # }
     /// # fn main() { }
     /// ```
-    pub fn search(
+    pub async fn search(
         &self,
         query: &str,
         artist_page: SearchPage,
@@ -366,16 +366,18 @@ impl Client {
             .arg("songOffset", song_page.offset)
             .build();
 
-        let res = self.get("search3", args)?;
+        let res = self.get("search3", args).await?;
         Ok(serde_json::from_value::<SearchResult>(res)?)
     }
 
     /// Returns a list of all starred artists, albums, and songs.
-    pub fn starred<U>(&self, folder_id: U) -> Result<SearchResult>
+    pub async fn starred<U>(&self, folder_id: U) -> Result<SearchResult>
     where
         U: Into<Option<usize>>,
     {
-        let res = self.get("getStarred", Query::with("musicFolderId", folder_id.into()))?;
+        let res = self
+            .get("getStarred", Query::with("musicFolderId", folder_id.into()))
+            .await?;
         Ok(serde_json::from_value::<SearchResult>(res)?)
     }
 }
@@ -414,34 +416,34 @@ mod tests {
         );
     }
 
-    #[test]
-    fn demo_ping() {
+    #[tokio::test]
+    async fn demo_ping() {
         let cli = test_util::demo_site().unwrap();
-        cli.ping().unwrap();
+        cli.ping().await.unwrap();
     }
 
-    #[test]
-    fn demo_license() {
+    #[tokio::test]
+    async fn demo_license() {
         let cli = test_util::demo_site().unwrap();
-        let license = cli.check_license().unwrap();
+        let license = cli.check_license().await.unwrap();
 
         assert!(license.valid);
         assert_eq!(license.email, String::from("demo@subsonic.org"));
     }
 
-    #[test]
-    fn demo_scan_status() {
+    #[tokio::test]
+    async fn demo_scan_status() {
         let cli = test_util::demo_site().unwrap();
-        let (status, n) = cli.scan_status().unwrap();
+        let (status, n) = cli.scan_status().await.unwrap();
         assert_eq!(status, false);
-        assert_eq!(n, 521);
+        assert_eq!(n, 525);
     }
 
-    #[test]
-    fn demo_search() {
+    #[tokio::test]
+    async fn demo_search() {
         let cli = test_util::demo_site().unwrap();
         let s = SearchPage::new().with_size(1);
-        let r = cli.search("dada", s, s, s).unwrap();
+        let r = cli.search("dada", s, s, s).await.unwrap();
 
         assert_eq!(r.artists[0].id, 14);
         assert_eq!(r.artists[0].name, String::from("The Dada Weatherman"));

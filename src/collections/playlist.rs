@@ -1,10 +1,12 @@
+use async_trait::async_trait;
 use serde::de::Deserializer;
 use serde::Deserialize;
 use serde_json;
+use std::marker::Send;
 use std::result;
 
 use crate::query::Query;
-use crate::{Client, Error, ApiError, Media, Result, Song};
+use crate::{ApiError, Client, Error, Media, Result, Song};
 
 #[derive(Debug)]
 pub struct Playlist {
@@ -18,9 +20,9 @@ pub struct Playlist {
 
 impl Playlist {
     /// Fetches the songs contained in a playlist.
-    pub fn songs(&self, client: &Client) -> Result<Vec<Song>> {
+    pub async fn songs(&self, client: &Client) -> Result<Vec<Song>> {
         if self.songs.len() as u64 != self.song_count {
-            Ok(get_playlist(client, self.id)?.songs)
+            Ok(get_playlist(client, self.id).await?.songs)
         } else {
             Ok(self.songs.clone())
         }
@@ -62,6 +64,7 @@ impl<'de> Deserialize<'de> for Playlist {
     }
 }
 
+#[async_trait]
 impl Media for Playlist {
     fn has_cover_art(&self) -> bool {
         !self.cover_id.is_empty()
@@ -71,13 +74,17 @@ impl Media for Playlist {
         Some(self.cover_id.as_ref())
     }
 
-    fn cover_art<U: Into<Option<usize>>>(&self, client: &Client, size: U) -> Result<Vec<u8>> {
+    async fn cover_art<U: Send + Into<Option<usize>>>(
+        &self,
+        client: &Client,
+        size: U,
+    ) -> Result<Vec<u8>> {
         let cover = self
             .cover_id()
             .ok_or_else(|| Error::Other("no cover art found"))?;
         let query = Query::with("id", cover).arg("size", size.into()).build();
 
-        client.get_bytes("getCoverArt", query)
+        client.get_bytes("getCoverArt", query).await
     }
 
     fn cover_art_url<U: Into<Option<usize>>>(&self, client: &Client, size: U) -> Result<String> {
@@ -90,13 +97,15 @@ impl Media for Playlist {
     }
 }
 
-fn get_playlists(client: &Client, user: Option<String>) -> Result<Vec<Playlist>> {
-    let playlist = client.get("getPlaylists", Query::with("username", user))?;
+async fn get_playlists(client: &Client, user: Option<String>) -> Result<Vec<Playlist>> {
+    let playlist = client
+        .get("getPlaylists", Query::with("username", user))
+        .await?;
     Ok(get_list_as!(playlist, Playlist))
 }
 
-fn get_playlist(client: &Client, id: u64) -> Result<Playlist> {
-    let res = client.get("getPlaylist", Query::with("id", id))?;
+async fn get_playlist(client: &Client, id: u64) -> Result<Playlist> {
+    let res = client.get("getPlaylist", Query::with("id", id)).await?;
     Ok(serde_json::from_value::<Playlist>(res)?)
 }
 
@@ -104,13 +113,13 @@ fn get_playlist(client: &Client, id: u64) -> Result<Playlist> {
 ///
 /// Since API version 1.14.0, the newly created playlist is returned. In earlier
 /// versions, an empty response is returned.
-fn create_playlist(client: &Client, name: String, songs: &[u64]) -> Result<Option<Playlist>> {
+async fn create_playlist(client: &Client, name: String, songs: &[u64]) -> Result<Option<Playlist>> {
     let args = Query::new()
         .arg("name", name)
         .arg_list("songId", songs)
         .build();
 
-    let res = client.get("createPlaylist", args)?;
+    let res = client.get("createPlaylist", args).await?;
 
     // TODO API is private
     // if client.api >= "1.14.0".into() {
@@ -121,7 +130,7 @@ fn create_playlist(client: &Client, name: String, songs: &[u64]) -> Result<Optio
 }
 
 /// Updates a playlist. Only the owner of the playlist is privileged to do so.
-fn update_playlist<'a, B, S>(
+async fn update_playlist<'a, B, S>(
     client: &Client,
     id: u64,
     name: S,
@@ -143,12 +152,12 @@ where
         .arg_list("songIndexToRemove", to_remove)
         .build();
 
-    client.get("updatePlaylist", args)?;
+    client.get("updatePlaylist", args).await?;
     Ok(())
 }
 
-fn delete_playlist(client: &Client, id: u64) -> Result<()> {
-    client.get("deletePlaylist", Query::with("id", id))?;
+async fn delete_playlist(client: &Client, id: u64) -> Result<()> {
+    client.get("deletePlaylist", Query::with("id", id)).await?;
     Ok(())
 }
 
@@ -158,11 +167,11 @@ mod tests {
     use crate::test_util;
 
     // The demo playlist exists, but can't be accessed
-    #[test]
-    fn remote_playlist_songs() {
+    #[tokio::test]
+    async fn remote_playlist_songs() {
         let parsed = serde_json::from_value::<Playlist>(raw()).unwrap();
         let mut srv = test_util::demo_site().unwrap();
-        let songs = parsed.songs(&mut srv);
+        let songs = parsed.songs(&mut srv).await;
 
         match songs {
             Err(Error::Api(ApiError::NotAuthorized(_))) => assert!(true),

@@ -17,17 +17,17 @@
 //! use sunk::song::Song;
 //! use sunk::{Album, Artist, Client, Streamable};
 //!
-//! # fn run() -> sunk::Result<()> {
+//! # async fn run() -> sunk::Result<()> {
 //! let site = "http://subsonic.example.com";
 //! let username = "admin";
 //! let password = "hunter2";
 //!
 //! let client = Client::new(site, username, password)?;
 //!
-//! let random_songs = Song::random(&client, 20)?;
+//! let random_songs = Song::random(&client, 20).await?;
 //! for mut song in random_songs {
 //!     song.set_max_bit_rate(320);
-//!     let bytes = song.stream(&client)?;
+//!     let bytes = song.stream(&client).await?;
 //!     // Use another library to stream the `bytes`!
 //! }
 //! # Ok(())
@@ -48,26 +48,26 @@
 //! # extern crate sunk;
 //! # use sunk::{Client, Album, Artist, Streamable};
 //! # use sunk::song::Song;
-//! # fn run() -> sunk::Result<()> {
+//! # async fn run() -> sunk::Result<()> {
 //! # let site = "http://subsonic.example.com";
 //! # let username = "admin";
 //! # let password = "hunter2";
 //! let client = Client::new(site, username, password)?;
 //!
 //! // I want to play some <insert artist here>.
-//! let an_artist = Artist::get(&client, 20)?;
-//! let artist_info = an_artist.info(&client)?;
-//! let artists_albums = an_artist.albums(&client)?;
+//! let an_artist = Artist::get(&client, 20).await?;
+//! let artist_info = an_artist.info(&client).await?;
+//! let artists_albums = an_artist.albums(&client).await?;
 //!
 //! // I love this album. Let's download it.
 //! let ref fav_album = artists_albums[0];
-//! let album_info_and_similar = fav_album.info(&client)?;
-//! let album_songs = fav_album.songs(&client)?;
+//! let album_info_and_similar = fav_album.info(&client).await?;
+//! let album_songs = fav_album.songs(&client).await?;
 //!
 //! use std::fs::File;
 //! use std::io::Write;
 //! for song in &album_songs {
-//!     let bytes = song.download(&client)?;
+//!     let bytes = song.download(&client).await?;
 //!     let mut file =
 //!         File::create(song.title.clone() + "." + song.encoding())?;
 //!     file.write(&bytes)?;
@@ -75,7 +75,7 @@
 //!
 //! // I want to find stuff like this song.
 //! let ref this_is_good = album_songs[6];
-//! let similar = this_is_good.similar(&client, 10)?;
+//! let similar = this_is_good.similar(&client, 10).await?;
 //! # Ok(())
 //! # }
 //! # fn main() { }

@@ -1,6 +1,8 @@
+use async_trait::async_trait;
 use serde::de::Deserializer;
 use serde::Deserialize;
 use serde_json;
+use std::marker::Send;
 use std::{fmt, result};
 
 use crate::query::{Arg, IntoArg, Query};
@@ -69,32 +71,34 @@ impl Album {
     ///
     /// Aside from errors the `Client` may cause, the method will error if
     /// there is no album matching the provided ID.
-    pub fn get(client: &Client, id: usize) -> Result<Album> {
-        self::get_album(client, id as u64)
+    pub async fn get(client: &Client, id: usize) -> Result<Album> {
+        self::get_album(client, id as u64).await
     }
 
     /// Lists all albums on the server. Supports paging.
-    pub fn list(
+    pub async fn list(
         client: &Client,
         list_type: ListType,
         page: SearchPage,
         folder: usize,
     ) -> Result<Vec<Album>> {
-        self::get_albums(client, list_type, page.count, page.offset, folder)
+        self::get_albums(client, list_type, page.count, page.offset, folder).await
     }
 
     /// Returns all songs in the album.
-    pub fn songs(&self, client: &Client) -> Result<Vec<Song>> {
+    pub async fn songs(&self, client: &Client) -> Result<Vec<Song>> {
         if self.songs.len() as u64 != self.song_count {
-            Ok(self::get_album(client, self.id)?.songs)
+            Ok(self::get_album(client, self.id).await?.songs)
         } else {
             Ok(self.songs.clone())
         }
     }
 
     /// Returns detailed information about the album.
-    pub fn info(&self, client: &Client) -> Result<AlbumInfo> {
-        let res = client.get("getArtistInfo", Query::with("id", self.id))?;
+    pub async fn info(&self, client: &Client) -> Result<AlbumInfo> {
+        let res = client
+            .get("getArtistInfo", Query::with("id", self.id))
+            .await?;
         Ok(serde_json::from_value(res)?)
     }
 }
@@ -156,6 +160,7 @@ impl<'de> Deserialize<'de> for Album {
     }
 }
 
+#[async_trait]
 impl Media for Album {
     fn has_cover_art(&self) -> bool {
         self.cover_id.is_some()
@@ -165,13 +170,17 @@ impl Media for Album {
         self.cover_id.as_ref().map(|s| s.as_str())
     }
 
-    fn cover_art<U: Into<Option<usize>>>(&self, client: &Client, size: U) -> Result<Vec<u8>> {
+    async fn cover_art<U: Send + Into<Option<usize>>>(
+        &self,
+        client: &Client,
+        size: U,
+    ) -> Result<Vec<u8>> {
         let cover = self
             .cover_id()
             .ok_or_else(|| Error::Other("no cover art found"))?;
         let query = Query::with("id", cover).arg("size", size.into()).build();
 
-        client.get_bytes("getCoverArt", query)
+        client.get_bytes("getCoverArt", query).await
     }
 
     fn cover_art_url<U: Into<Option<usize>>>(&self, client: &Client, size: U) -> Result<String> {
@@ -223,12 +232,12 @@ impl<'de> Deserialize<'de> for AlbumInfo {
     }
 }
 
-fn get_album(client: &Client, id: u64) -> Result<Album> {
-    let res = client.get("getAlbum", Query::with("id", id))?;
+async fn get_album(client: &Client, id: u64) -> Result<Album> {
+    let res = client.get("getAlbum", Query::with("id", id)).await?;
     Ok(serde_json::from_value::<Album>(res)?)
 }
 
-fn get_albums<U>(
+async fn get_albums<U>(
     client: &Client,
     list_type: ListType,
     size: U,
@@ -245,7 +254,7 @@ where
         .arg("musicFolderId", folder_id.into())
         .build();
 
-    let album = client.get("getAlbumList2", args)?;
+    let album = client.get("getAlbumList2", args).await?;
     Ok(get_list_as!(album, Album))
 }
 
@@ -254,10 +263,10 @@ mod tests {
     use super::*;
     use crate::test_util;
 
-    #[test]
-    fn demo_get_albums() {
+    #[tokio::test]
+    async fn demo_get_albums() {
         let mut srv = test_util::demo_site().unwrap();
-        let albums = get_albums(&mut srv, ListType::AlphaByArtist, None, None, None).unwrap();
+        let albums = get_albums(&mut srv, ListType::AlphaByArtist, None, None, None).await.unwrap();
 
         assert!(!albums.is_empty())
     }

@@ -1,5 +1,5 @@
-use serde_json;
 use serde::Deserialize;
+use serde_json;
 
 use crate::ApiError;
 

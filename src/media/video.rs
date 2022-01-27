@@ -1,5 +1,6 @@
+use async_trait::async_trait;
+use serde::de::Deserializer;
 use serde::Deserialize;
-use serde::de::{Deserializer};
 use serde_json;
 use std::result;
 
@@ -36,38 +37,38 @@ pub struct Video {
 }
 
 impl Video {
-    pub fn get(client: &Client, id: usize) -> Result<Video> {
-        Video::list(client)?
+    pub async fn get(client: &Client, id: usize) -> Result<Video> {
+        Video::list(client).await?
             .into_iter()
             .find(|v| v.id == id)
             .ok_or_else(|| Error::Other("no video found"))
     }
 
-    pub fn list(client: &Client) -> Result<Vec<Video>> {
-        let video = client.get("getVideos", Query::none())?;
+    pub async fn list(client: &Client) -> Result<Vec<Video>> {
+        let video = client.get("getVideos", Query::none()).await?;
         Ok(get_list_as!(video, Video))
     }
 
-    pub fn info<'a, S>(&self, client: &Client, format: S) -> Result<VideoInfo>
+    pub async fn info<'a, S>(&self, client: &Client, format: S) -> Result<VideoInfo>
     where
         S: Into<Option<&'a str>>,
     {
         let args = Query::with("id", self.id)
             .arg("format", format.into())
             .build();
-        let res = client.get("getVideoInfo", args)?;
+        let res = client.get("getVideoInfo", args).await?;
         Ok(serde_json::from_value(res)?)
     }
 
     /// Returns the raw video captions.
-    pub fn captions<'a, S>(&self, client: &Client, format: S) -> Result<String>
+    pub async fn captions<'a, S>(&self, client: &Client, format: S) -> Result<String>
     where
         S: Into<Option<&'a str>>,
     {
         let args = Query::with("id", self.id)
             .arg("format", format.into())
             .build();
-        let res = client.get_raw("getCaptions", args)?;
+        let res = client.get_raw("getCaptions", args).await?;
         Ok(res)
     }
 
@@ -86,8 +87,9 @@ impl Video {
     }
 }
 
+#[async_trait]
 impl Streamable for Video {
-    fn stream(&self, client: &Client) -> Result<Vec<u8>> {
+    async fn stream(&self, client: &Client) -> Result<Vec<u8>> {
         let args = Query::with("id", self.id)
             .arg("maxBitRate", self.stream_br)
             .arg(
@@ -96,7 +98,7 @@ impl Streamable for Video {
             )
             .arg("timeOffset", self.stream_offset)
             .build();
-        client.get_bytes("stream", args)
+        client.get_bytes("stream", args).await
     }
 
     fn stream_url(&self, client: &Client) -> Result<String> {
@@ -111,8 +113,8 @@ impl Streamable for Video {
         client.build_url("stream", args)
     }
 
-    fn download(&self, client: &Client) -> Result<Vec<u8>> {
-        client.get_bytes("download", Query::with("id", self.id))
+    async fn download(&self, client: &Client) -> Result<Vec<u8>> {
+        client.get_bytes("download", Query::with("id", self.id)).await
     }
 
     fn download_url(&self, client: &Client) -> Result<String> {
@@ -134,6 +136,7 @@ impl Streamable for Video {
     }
 }
 
+#[async_trait]
 impl Media for Video {
     fn has_cover_art(&self) -> bool {
         self.cover_id.is_some()
@@ -143,13 +146,17 @@ impl Media for Video {
         self.cover_id.as_ref().map(|s| s.as_str())
     }
 
-    fn cover_art<U: Into<Option<usize>>>(&self, client: &Client, size: U) -> Result<Vec<u8>> {
+    async fn cover_art<U: Send + Into<Option<usize>>>(
+        &self,
+        client: &Client,
+        size: U,
+    ) -> Result<Vec<u8>> {
         let cover = self
             .cover_id()
             .ok_or_else(|| Error::Other("no cover art found"))?;
         let query = Query::with("id", cover).arg("size", size.into()).build();
 
-        client.get_bytes("getCoverArt", query)
+        client.get_bytes("getCoverArt", query).await
     }
 
     fn cover_art_url<U: Into<Option<usize>>>(&self, client: &Client, size: U) -> Result<String> {

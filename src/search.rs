@@ -14,7 +14,7 @@
 //! use sunk::{Album, Client, ListType};
 //! use sunk::search::{self, SearchPage};
 //!
-//! # fn run() -> sunk::Result<()> {
+//! # async fn run() -> sunk::Result<()> {
 //! # let site = "https://demo.subsonic.org";
 //! # let username = "guest3";
 //! # let password = "guest";
@@ -22,23 +22,23 @@
 //! let mut page = SearchPage::new();
 //! let list = ListType::default();
 //!
-//! let results = Album::list(&client, list, page, 0)?;
+//! let results = Album::list(&client, list, page, 0).await?;
 //! assert_eq!(results.len(), 20);
 //! #
 //! # page.next();
-//! # let more_results = Album::list(&client, list, page, 0)?;
+//! # let more_results = Album::list(&client, list, page, 0).await?;
 //! # assert_eq!(more_results.len(), 20);
 //! #
 //! # page.next();
-//! # let last_results = Album::list(&client, list, page, 0)?;
+//! # let last_results = Album::list(&client, list, page, 0).await?;
 //! # assert_eq!(last_results.len(), 10);
 //! #
 //! # let exact = SearchPage::new().with_size(50);
-//! # let exact_results = Album::list(&client, list, exact, 0)?;
+//! # let exact_results = Album::list(&client, list, exact, 0).await?;
 //! # assert_eq!(exact_results.len(), 50);
 //! #
 //! # let all = search::ALL;
-//! # let all_results = Album::list(&client, list, all, 0)?;
+//! # let all_results = Album::list(&client, list, all, 0).await?;
 //! # assert_eq!(all_results.len(), 50);
 //! #
 //! # Ok(())
@@ -53,7 +53,7 @@
 //! # use sunk::{Album, Client, ListType};
 //! # use sunk::search::{self, SearchPage};
 //! #
-//! # fn run() -> sunk::Result<()> {
+//! # async fn run() -> sunk::Result<()> {
 //! # let site = "https://demo.subsonic.org";
 //! # let username = "guest3";
 //! # let password = "guest";
@@ -61,23 +61,23 @@
 //! # let mut page = SearchPage::new();
 //! # let list = ListType::default();
 //! #
-//! # let results = Album::list(&client, list, page, 0)?;
+//! # let results = Album::list(&client, list, page, 0).await?;
 //! # assert_eq!(results.len(), 20);
 //! #
 //! page.next();
-//! let more_results = Album::list(&client, list, page, 0)?;
+//! let more_results = Album::list(&client, list, page, 0).await?;
 //! assert_eq!(more_results.len(), 20);
 //!
 //! page.next();
-//! let last_results = Album::list(&client, list, page, 0)?;
+//! let last_results = Album::list(&client, list, page, 0).await?;
 //! assert_eq!(last_results.len(), 10);
 //! #
 //! # let exact = SearchPage::new().with_size(50);
-//! # let exact_results = Album::list(&client, list, exact, 0)?;
+//! # let exact_results = Album::list(&client, list, exact, 0).await?;
 //! # assert_eq!(exact_results.len(), 50);
 //! #
 //! # let all = search::ALL;
-//! # let all_results = Album::list(&client, list, all, 0)?;
+//! # let all_results = Album::list(&client, list, all, 0).await?;
 //! # assert_eq!(all_results.len(), 50);
 //! #
 //! # Ok(())
@@ -96,7 +96,7 @@
 //! # use sunk::{Album, Client, ListType};
 //! # use sunk::search::{self, SearchPage};
 //! #
-//! # fn run() -> sunk::Result<()> {
+//! # async fn run() -> sunk::Result<()> {
 //! # let site = "https://demo.subsonic.org";
 //! # let username = "guest3";
 //! # let password = "guest";
@@ -104,23 +104,23 @@
 //! # let mut page = SearchPage::new();
 //! # let list = ListType::default();
 //! #
-//! # let results = Album::list(&client, list, page, 0)?;
+//! # let results = Album::list(&client, list, page, 0).await?;
 //! # assert_eq!(results.len(), 20);
 //! #
 //! # page.next();
-//! # let more_results = Album::list(&client, list, page, 0)?;
+//! # let more_results = Album::list(&client, list, page, 0).await?;
 //! # assert_eq!(more_results.len(), 20);
 //! #
 //! # page.next();
-//! # let last_results = Album::list(&client, list, page, 0)?;
+//! # let last_results = Album::list(&client, list, page, 0).await?;
 //! # assert_eq!(last_results.len(), 10);
 //! #
 //! let exact = SearchPage::new().with_size(50);
-//! let exact_results = Album::list(&client, list, exact, 0)?;
+//! let exact_results = Album::list(&client, list, exact, 0).await?;
 //! assert_eq!(exact_results.len(), 50);
 //! #
 //! # let all = search::ALL;
-//! # let all_results = Album::list(&client, list, all, 0)?;
+//! # let all_results = Album::list(&client, list, all, 0).await?;
 //! # assert_eq!(all_results.len(), 50);
 //! #
 //! # Ok(())
@@ -138,7 +138,7 @@
 //! # use sunk::{Album, Client, ListType};
 //! # use sunk::search::{self, SearchPage};
 //! #
-//! # fn run() -> sunk::Result<()> {
+//! # async fn run() -> sunk::Result<()> {
 //! # let site = "https://demo.subsonic.org";
 //! # let username = "guest3";
 //! # let password = "guest";
@@ -146,23 +146,23 @@
 //! # let mut page = SearchPage::new();
 //! # let list = ListType::default();
 //! #
-//! # let results = Album::list(&client, list, page, 0)?;
+//! # let results = Album::list(&client, list, page, 0).await?;
 //! # assert_eq!(results.len(), 20);
 //! #
 //! # page.next();
-//! # let more_results = Album::list(&client, list, page, 0)?;
+//! # let more_results = Album::list(&client, list, page, 0).await?;
 //! # assert_eq!(more_results.len(), 20);
 //! #
 //! # page.next();
-//! # let last_results = Album::list(&client, list, page, 0)?;
+//! # let last_results = Album::list(&client, list, page, 0).await?;
 //! # assert_eq!(last_results.len(), 10);
 //! #
 //! # let exact = SearchPage::new().with_size(50);
-//! # let exact_results = Album::list(&client, list, exact, 0)?;
+//! # let exact_results = Album::list(&client, list, exact, 0).await?;
 //! # assert_eq!(exact_results.len(), 50);
 //! #
 //! let all = search::ALL;
-//! let all_results = Album::list(&client, list, all, 0)?;
+//! let all_results = Album::list(&client, list, all, 0).await?;
 //! assert_eq!(all_results.len(), 50);
 //! #
 //! # Ok(())
@@ -170,10 +170,10 @@
 //! # fn main() { }
 //! ```
 
-use serde::Deserialize;
 use crate::song::Song;
-use std::fmt;
 use crate::{Album, Artist};
+use serde::Deserialize;
+use std::fmt;
 
 /// The maximum number of results most searches will accept.
 pub const ALL: SearchPage = SearchPage {

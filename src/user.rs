@@ -1,6 +1,6 @@
-use serde::Deserialize;
 use crate::query::Query;
 use crate::{Client, Result};
+use serde::Deserialize;
 
 /// A struct representing a Subsonic user.
 #[derive(Debug, Deserialize)]
@@ -73,8 +73,10 @@ pub struct User {
 
 impl User {
     /// Fetches a single user's information from the server.
-    pub fn get(client: &Client, username: &str) -> Result<User> {
-        let res = client.get("getUser", Query::with("username", username))?;
+    pub async fn get(client: &Client, username: &str) -> Result<User> {
+        let res = client
+            .get("getUser", Query::with("username", username))
+            .await?;
         Ok(serde_json::from_value::<User>(res)?)
     }
 
@@ -86,8 +88,8 @@ impl User {
     /// creating the `Client`) will result in a [`NotAuthorized`] error.
     ///
     /// [`NotAuthorized`]: ./enum.ApiError.html#variant.NotAuthorized
-    pub fn list(client: &Client) -> Result<Vec<User>> {
-        let user = client.get("getUsers", Query::none())?;
+    pub async fn list(client: &Client) -> Result<Vec<User>> {
+        let user = client.get("getUsers", Query::none()).await?;
         Ok(get_list_as!(user, User))
     }
 
@@ -97,11 +99,11 @@ impl User {
     ///
     /// A user may only change their own password, and only if they have the
     /// `settings_role` permission, unless they are an administrator.
-    pub fn change_password(&self, client: &Client, password: &str) -> Result<()> {
+    pub async fn change_password(&self, client: &Client, password: &str) -> Result<()> {
         let args = Query::with("username", self.username.as_str())
             .arg("password", password)
             .build();
-        client.get("changePassword", args)?;
+        client.get("changePassword", args).await?;
         Ok(())
     }
 
@@ -109,8 +111,10 @@ impl User {
     ///
     /// The method makes no guarantee as to the encoding of the image, but does
     /// guarantee that it is a valid image file.
-    pub fn avatar(&self, client: &Client) -> Result<Vec<u8>> {
-        client.get_bytes("getAvatar", Query::with("username", self.username.as_str()))
+    pub async fn avatar(&self, client: &Client) -> Result<Vec<u8>> {
+        client
+            .get_bytes("getAvatar", Query::with("username", self.username.as_str()))
+            .await
     }
 
     /// Creates a new local user to be pushed to the server.
@@ -123,11 +127,13 @@ impl User {
     }
 
     /// Removes the user from the Subsonic server.
-    pub fn delete(&self, client: &Client) -> Result<()> {
-        client.get(
-            "deleteUser",
-            Query::with("username", self.username.as_str()),
-        )?;
+    pub async fn delete(&self, client: &Client) -> Result<()> {
+        client
+            .get(
+                "deleteUser",
+                Query::with("username", self.username.as_str()),
+            )
+            .await?;
         Ok(())
     }
 
@@ -139,23 +145,20 @@ impl User {
     /// extern crate sunk;
     /// use sunk::{Client, User};
     ///
-    /// # fn run() -> sunk::Result<()> {
+    /// # async fn run() -> sunk::Result<()> {
     /// let client = Client::new("http://demo.subsonic.org", "guest3", "guest")?;
-    /// let mut user = User::get(&client, "guest")?;
+    /// let mut user = User::get(&client, "guest").await?;
     ///
     /// // Update email
     /// user.email = "user@example.com".to_string();
     /// // Disable commenting
     /// user.comment_role = false;
     /// // Update on server
-    /// user.update(&client)?;
+    /// user.update(&client).await?;
     /// # Ok(())
     /// # }
-    /// # fn main() {
-    /// #     run().unwrap();
-    /// # }
     /// ```
-    pub fn update(&self, client: &Client) -> Result<()> {
+    pub async fn update(&self, client: &Client) -> Result<()> {
         let args = Query::with("username", self.username.as_ref())
             .arg("email", self.email.as_ref())
             .arg("ldapAuthenticated", self.ldap_authenticated)
@@ -173,7 +176,7 @@ impl User {
             .arg_list("musicFolderId", &self.folders.clone())
             .arg("maxBitRate", self.max_bit_rate)
             .build();
-        client.get("updateUser", args)?;
+        client.get("updateUser", args).await?;
         Ok(())
     }
 }
@@ -257,7 +260,7 @@ impl UserBuilder {
     build!(max_bit_rate: u64);
 
     /// Pushes a defined new user to the Subsonic server.
-    pub fn create(&self, client: &Client) -> Result<()> {
+    pub async fn create(&self, client: &Client) -> Result<()> {
         let args = Query::with("username", self.username.as_ref())
             .arg("password", self.password.as_ref())
             .arg("email", self.email.as_ref())
@@ -276,7 +279,7 @@ impl UserBuilder {
             .arg_list("musicFolderId", &self.folders)
             .arg("maxBitRate", self.max_bit_rate)
             .build();
-        client.get("createUser", args)?;
+        client.get("createUser", args).await?;
         Ok(())
     }
 }
@@ -286,10 +289,10 @@ mod tests {
     use super::*;
     use crate::test_util;
 
-    #[test]
-    fn remote_parse_user() {
+    #[tokio::test]
+    async fn remote_parse_user() {
         let mut srv = test_util::demo_site().unwrap();
-        let guest = User::get(&mut srv, "guest3").unwrap();
+        let guest = User::get(&mut srv, "guest3").await.unwrap();
 
         assert_eq!(guest.username, "guest3");
         assert!(guest.stream_role);
